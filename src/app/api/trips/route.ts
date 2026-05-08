@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore/lite";
 import { db } from "@/lib/firebase";
 import type { Trip } from "@/lib/types";
 

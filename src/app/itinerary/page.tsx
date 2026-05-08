@@ -25,6 +25,29 @@ function ItineraryContent() {
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const saveTrip = useCallback(
+    async (itineraryData: DayPlan[], budget: number, numDays: number) => {
+      setSaving(true);
+      try {
+        const res = await fetch("/api/trips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destination, vibe, budget, days: numDays, itinerary: itineraryData }),
+        });
+        if (res.ok) {
+          const { tripId: newTripId } = await res.json();
+          const params = new URLSearchParams({ destination, vibe, days: String(numDays), tripId: newTripId });
+          router.replace(`/itinerary?${params.toString()}`, { scroll: false });
+        }
+      } catch {
+        console.warn("Failed to save trip to Firestore");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [destination, vibe, router]
+  );
+
   // Load from Firestore if tripId exists, otherwise generate fresh
   useEffect(() => {
     const load = async () => {
@@ -54,7 +77,6 @@ function ItineraryContent() {
         }
         if (data.itinerary) {
           setItinerary(data.itinerary);
-          // Auto-save to Firestore and update URL with tripId
           await saveTrip(data.itinerary, budgetConstraint, days);
         }
       } catch {
@@ -64,33 +86,10 @@ function ItineraryContent() {
       }
     };
     load();
+    // destination and vibe are the only triggers for re-generation;
+    // saveTrip, budgetConstraint, days intentionally excluded to prevent loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination, vibe]);
-
-  const saveTrip = useCallback(
-    async (itineraryData: DayPlan[], budget: number, numDays: number) => {
-      setSaving(true);
-      try {
-        const res = await fetch("/api/trips", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ destination, vibe, budget, days: numDays, itinerary: itineraryData }),
-        });
-        if (res.ok) {
-          const { tripId: newTripId } = await res.json();
-          // Update URL without re-triggering the effect
-          const params = new URLSearchParams({ destination, vibe, days: String(numDays), tripId: newTripId });
-          router.replace(`/itinerary?${params.toString()}`, { scroll: false });
-        }
-      } catch {
-        // Non-critical — trip still works, just not shareable
-        console.warn("Failed to save trip to Firestore");
-      } finally {
-        setSaving(false);
-      }
-    },
-    [destination, vibe, router]
-  );
 
   const handleCollaborate = async () => {
     try {
