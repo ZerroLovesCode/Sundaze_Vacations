@@ -8,6 +8,8 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
+# Ensure devDependencies are installed even if Cloud Build sets NODE_ENV=production
+ENV NODE_ENV=development
 RUN npm ci
 
 # Rebuild the source code only when needed
